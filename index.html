@@ -3,109 +3,287 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>MetGrid Ecosystem — Terminal · Backend · Programming</title>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  <title>MetaGrid Ecosystem — Terminal · Backend · Programming</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
     :root{
-      --bg:#050507; --panel: rgba(255,255,255,0.03); --muted:#8b8b8b; --accent:#33ff77; --glass:rgba(255,255,255,0.03);
-      --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+      --bg: #000000;
+      --panel: rgba(20, 20, 30, 0.1);
+      --muted: #a0a0b0;
+      --accent: #00bfff;
+      --glass: rgba(20, 20, 30, 0.05);
+      --mono: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
     }
     *{box-sizing:border-box}
-    html,body{height:100%;margin:0;background:var(--bg);color:#e6e6e6;font-family:Inter,system-ui,Arial}
-
-    /* matrix canvas sits behind everything */
+    html,body{height:100%;margin:0;background:var(--bg);color:#e6e6e6;font-family:var(--mono);scrollbar-width: none; /* Firefox */-ms-overflow-style: none; /* IE and Edge */}
+    body::-webkit-scrollbar { display: none; /* Chrome, Safari, Opera */ }
+    h1 { font-weight: bold; }
+    h2, h3, h4, h5, h6 { font-weight: normal; }
     #matrix-bg{position:fixed;inset:0;z-index:0;pointer-events:none}
-
     .wrap{position:relative;z-index:10;min-height:100vh;display:flex;flex-direction:column}
-
-    /* Removed header styles - navbar is gone */
-
-    main{flex:1;padding:32px;display:grid;grid-template-columns:2fr 1fr;gap:28px}
-
-    /* frosted/translucent panels */
     .frost{background:var(--panel);backdrop-filter:blur(8px) saturate(1.05);-webkit-backdrop-filter:blur(8px) saturate(1.05);border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:20px}
-    /* make internal content slightly obscured to let BG show through */
     .obscure{background:linear-gradient(180deg,rgba(0,0,0,0.12),rgba(255,255,255,0.02));padding:12px;border-radius:8px}
-
     .kicker{font-family:var(--mono);color:var(--accent);font-size:12px;letter-spacing:1.6px;text-transform:uppercase}
     h1{font-family:var(--mono);font-weight:700;font-size:40px;margin:10px 0}
     p.lead{color:var(--muted);line-height:1.6}
-
     .btn{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:10px 14px;border-radius:8px;color:inherit;font-family:var(--mono);cursor:pointer;transition:all 0.2s}
     .btn:hover{background:rgba(255,255,255,0.03)}
-    .btn.primary{background:linear-gradient(90deg,rgba(51,255,119,0.07),rgba(51,255,119,0.02));border-color:rgba(51,255,119,0.14)}
-    .btn.primary:hover{background:linear-gradient(90deg,rgba(51,255,119,0.12),rgba(51,255,119,0.05))}
-
-    .terminal{background:rgba(0,0,0,0.45);border-radius:8px;font-family:var(--mono);font-size:13px;color:var(--accent);line-height:1.45;overflow:auto;height:440px;padding:12px;border:1px solid rgba(255,255,255,0.03)}
-    .terminal .line{white-space:pre-wrap}
-    .terminal .line.error{color:#ff5555}
-    .terminal .line.success{color:var(--accent)}
-    .terminal .line.info{color:#55aaff}
-    .prompt{color:var(--muted);margin-right:8px}
-    .input{outline:none;border:none;background:transparent;color:var(--accent);font-family:var(--mono);flex:1}
-
-    .pages{min-height:420px}
-    .page{display:none;animation:fadeIn 0.3s ease-in-out}
-    .page.active{display:block}
+    .btn.primary{background:linear-gradient(90deg,rgba(0,191,255,0.07),rgba(0,191,255,0.02));border-color:rgba(0,191,255,0.14)}
+    .btn.primary:hover{background:linear-gradient(90deg,rgba(0,191,255,0.12),rgba(0,191,255,0.05))}
     
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+    /* Fixed Terminal Styles */
+    .terminal-container{
+        background: rgba(10, 10, 10, 0.40);
+        border-radius: 8px;
+        font-family: 'Space Mono', ui-monospace, monospace;
+        color: #d4d4d4;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        max-height: 790px;
+        padding: 0;
+        border: 1px solid #333;
+    }
+    .terminal-window{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        background: #15151a;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        border-bottom: 1px solid #333;
+        position: relative; /* For positioning user text */
+    }
+    .terminal-buttons {
+        display: flex;
+        gap: 8px;
+    }
+    .terminal-btn {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+    .terminal-btn.red{ background-color: #8a2be2; }
+    .terminal-btn.yellow{ background-color: #008080; }
+    .terminal-btn.green{ background-color: #1e90ff; }
+    
+    /* Fixed terminal content area */
+    .terminal-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+        overflow: hidden;
+        min-height: 0;
+    }
+    
+    /* Fixed terminal output area */
+    .terminal-output {
+        flex: 1;
+        padding: 12px;
+        overflow-y: auto;
+        font-size: 13px; /* Consistent font size */
+        line-height: 1.45;
+        min-height: 0;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE and Edge */
     }
 
+    .terminal-output::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
+    }
+    
+    /* Fixed terminal input line */
+    .terminal-input-line {
+        display: flex;
+        align-items: center;
+        padding: 8px 12px;
+        border-top: 1px solid rgba(255,255,255,0.05);
+    }
+    
+    .prompt {
+        color: #00ffff;
+        margin-right: 8px;
+        font-weight: bold;
+        font-size: 13px; /* Consistent font size */
+        white-space: nowrap;
+    }
+    
+    .input {
+        outline: none;
+        border: none;
+        background: transparent;
+        color: #f0f0f0;
+        font-family: var(--mono);
+        flex: 1;
+        font-size: 13px; /* Consistent font size */
+        padding: 0;
+    }
+    
+    .terminal .line {
+        white-space: pre-wrap;
+        font-size: 13px; /* Consistent font size */
+        line-height: 1.45;
+        margin: 2px 0;
+    }
+    .terminal .line.error{color:#ff5555}
+    .terminal .line.success{color:#00ff80}
+    .terminal .line.info{color:#55aaff}
+    .terminal .line.warning{color:#eb9c00}
+    .terminal .line.command{color:#732ffa}
+    
+    .pages{min-height:420px}
+    .page{display:none;}   /* animation:fadeIn 0.3s ease-in-out */
+    .page.active{display:block}
+    /* Fade In Animation */
+    /* @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    } */
     .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px}
     .card{padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);transition:all 0.2s}
     .card:hover{background:rgba(255,255,255,0.04);transform:translateY(-2px)}
     .chip{display:inline-block;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);font-size:12px}
-    
-    /* New styles for additional content */
     .service-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:20px 0}
     .service{background:rgba(255,255,255,0.02);border-radius:10px;padding:16px;border:1px solid rgba(255,255,255,0.03)}
     .service h3{margin-top:0;color:var(--accent)}
-    
     .status-indicator{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px}
-    .status-online{background-color:var(--accent)}
+    .status-online{background-color:#00ff80}
     .status-offline{background-color:#ff5555}
     .status-warning{background-color:#ffaa00}
-    
     .terminal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-    .terminal-title{font-family:var(--mono);font-weight:700}
+    .terminal-title{font-family:var(--mono);font-weight:700; position: absolute;left: 50%;transform: translateX(-50%)}
     .terminal-user{font-size:12px;color:var(--muted)}
-    
     footer{padding:18px 28px;border-top:1px solid rgba(255,255,255,0.02);color:var(--muted);font-size:13px;display:flex;justify-content:space-between;align-items:center}
-    
     .logo{display:flex;align-items:center;gap:8px}
-    .logo .dot{width:24px;height:24px;border-radius:6px;background:linear-gradient(180deg,var(--accent),#17b85a);display:grid;place-items:center;font-family:var(--mono);font-weight:700;color:#001;font-size:10px}
+    .logo .dot{width:24px;height:24px;border-radius:6px;background:linear-gradient(180deg,var(--accent),#0080ff);display:grid;place-items:center;font-family:var(--mono);font-weight:700;color:#001;font-size:10px}
     .brand{font-family:var(--mono);font-weight:700;font-size:14px}
-    
     .code-block{background:rgba(0,0,0,0.3);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12px;margin:16px 0;overflow-x:auto}
-    
     .tab-container{margin:20px 0}
     .tabs{display:flex;border-bottom:1px solid rgba(255,255,255,0.05);margin-bottom:16px}
     .tab{padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s}
     .tab.active{border-bottom-color:var(--accent);color:var(--accent)}
     .tab-content{display:none}
     .tab-content.active{display:block}
+    .terminal-footer{
+        font-family: 'Space Mono', ui-monospace, monospace;
+        color: #a0a0a0;
+        font-size: 13px;
+        padding: 8px 12px;
+        text-align: center;
+        background: rgba(10, 10, 10, 0.40);
+        /* border-top: 1px solid #333; */
+        border-bottom-left-radius: 8px;
+        border-bottom-right-radius: 8px;
+    }
+    .terminal-footer span {
+        font-weight: bold;
+        color: #55aaff;
+    }
+    .home-button {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        z-index: 20;
+    }
+    .home-button i {
+        font-size: 24px;
+        color: #d4d4d4;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+    .home-button i:hover {
+        color: #00bfff;
+    }
+    /* Adjusted layout for main content to fit the new terminal style */
+    main{
+        display: flex;
+        gap: 28px;
+        padding: 32px;
+        flex: 1;
+    }
+    .left-panel {
+        flex: 2;
+        display: flex;
+        flex-direction: column;
+    }
+    .right-panel {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    .terminal-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
 
-    @media (max-width:1100px){main{grid-template-columns:1fr;padding:18px}.terminal{height:300px}.service-grid{grid-template-columns:1fr}}
+    /* ASCII Art for MetaGrid Ecosystem */
+    .ascii-art {
+        white-space: pre;
+        font-family: var(--mono);
+        color: #00bfff;
+        font-size: 10px;
+        line-height: 1;
+        margin-bottom: 20px;
+    }
+
+    /* Colors for metafetch output */
+    .metafetch-ascii {
+      color: #732ffa; /* Purple */
+    }
+    .metafetch-label {
+      color: #00bfff; /* Blue */
+    }
+    .metafetch-info {
+      color: #fff; /* White */
+    }
+    .metafetch-break {
+        color: #8a2be2; /* BlueViolet */
+    }
+
+    @media (max-width:1100px){
+        main{
+            flex-direction:column;
+            padding:18px
+        }
+        .terminal-container {
+            height: 400px; /* Smaller height on mobile */
+        }
+        
+        footer {
+            flex-direction: column;
+            gap: 16px;
+            text-align: center;
+            padding: 18px;
+        }
+    
+        footer > div:last-child {
+        justify-content: center;
+        }
+    }
   </style>
 </head>
 <body>
   <canvas id="matrix-bg"></canvas>
   <div class="wrap">
     <main>
-      <section class="frost obscure">
+      <section class="frost obscure left-panel">
+        <div class="home-button" onclick="navigate('home')">
+            <i class="fa-solid fa-house"></i>
+        </div>
         <div id="pages" class="pages">
           <article id="home" class="page active">
             <div class="kicker">Orchestration • Observability • Dev</div>
-            <h1>MetGrid Ecosystem</h1>
+            <h1>MetaGrid Ecosystem</h1>
             <p class="lead">A terminal-first UI for modern backend workflows. Panels and cards are translucent so the matrix rain shows through; content is intentionally obscured to keep focus on actions and commands.</p>
             <div style="margin-top:16px">
               <button class="btn primary" onclick="navigate('dashboard')">Open Dashboard</button>
               <button class="btn" onclick="navigate('docs')">View Docs</button>
               <button class="btn" onclick="navigate('services')">Services</button>
             </div>
-
             <div class="cards">
               <div class="card">
                 <strong>Remote Shells</strong>
@@ -132,26 +310,23 @@
                 <span class="chip">SAML</span>
               </div>
             </div>
-            
             <div class="tab-container">
               <div class="tabs">
                 <div class="tab active" data-tab="quickstart">Quick Start</div>
                 <div class="tab" data-tab="features">Features</div>
                 <div class="tab" data-tab="integrations">Integrations</div>
               </div>
-              
               <div class="tab-content active" id="quickstart">
-                <p>Get started with MetGrid in minutes:</p>
+                <p>Get started with MetaGrid in minutes:</p>
                 <div class="code-block">
-# Install MetGrid CLI<br>
-curl -fsSL https://get.metgrid.io | sh<br><br>
+# Install MetaGrid CLI<br>
+curl -fsSL https://get.MetaGrid.io | sh<br><br>
 # Authenticate with your account<br>
-metgrid auth login<br><br>
+MetaGrid auth login<br><br>
 # Deploy your first service<br>
-metgrid deploy --file service.yaml
+MetaGrid deploy --file service.yaml
                 </div>
               </div>
-              
               <div class="tab-content" id="features">
                 <ul>
                   <li>Real-time cluster monitoring</li>
@@ -160,9 +335,8 @@ metgrid deploy --file service.yaml
                   <li>Multi-cloud deployment</li>
                 </ul>
               </div>
-              
               <div class="tab-content" id="integrations">
-                <p>MetGrid integrates with your existing tools:</p>
+                <p>MetaGrid integrates with your existing tools:</p>
                 <span class="chip">Kubernetes</span>
                 <span class="chip">Docker</span>
                 <span class="chip">GitHub</span>
@@ -172,12 +346,10 @@ metgrid deploy --file service.yaml
               </div>
             </div>
           </article>
-
           <article id="docs" class="page">
             <div class="kicker">Documentation</div>
             <h1>Developer Documentation</h1>
             <p style="color:var(--muted)">Browse quickstart guides and API references. Try the terminal command <code>ls</code> or <code>goto home</code> to navigate.</p>
-            
             <div class="cards">
               <div class="card">
                 <strong>API Reference</strong>
@@ -201,12 +373,10 @@ metgrid deploy --file service.yaml
               </div>
             </div>
           </article>
-
           <article id="dashboard" class="page">
             <div class="kicker">Live Dashboard</div>
             <h1>System Dashboard</h1>
             <p style="color:var(--muted)">View services, deployments, and live consoles. Use <code>open console</code> in the terminal to pop the console in focus.</p>
-            
             <div class="service-grid">
               <div class="service">
                 <h3><span class="status-indicator status-online"></span>API Gateway</h3>
@@ -239,43 +409,40 @@ metgrid deploy --file service.yaml
                 <div style="font-size:12px;color:var(--muted)">CPU: 8% | Memory: 640MB</div>
               </div>
             </div>
-            
             <div style="margin-top:20px">
               <button class="btn primary" onclick="runCommand('deploy status')">Check Deployments</button>
               <button class="btn" onclick="runCommand('logs tail')">View Logs</button>
               <button class="btn" onclick="runCommand('metrics')">Show Metrics</button>
             </div>
           </article>
-          
           <article id="services" class="page">
             <div class="kicker">Service Catalog</div>
             <h1>Available Services</h1>
-            <p style="color:var(--muted)">Browse and manage all available services in the MetGrid ecosystem.</p>
-            
+            <p style="color:var(--muted)">Browse and manage all available services in the MetaGrid ecosystem.</p>
             <div class="cards">
               <div class="card">
-                <strong>MetGrid Compute</strong>
+                <strong>MetaGrid Compute</strong>
                 <p style="margin:8px 0;color:var(--muted)">Container-based compute service with auto-scaling.</p>
                 <span class="chip">Containers</span>
                 <span class="chip">Auto-scale</span>
                 <button class="btn" style="margin-top:8px" onclick="runCommand('service info compute')">Details</button>
               </div>
               <div class="card">
-                <strong>MetGrid DB</strong>
+                <strong>MetaGrid DB</strong>
                 <p style="margin:8px 0;color:var(--muted)">Managed database service with automated backups.</p>
                 <span class="chip">SQL</span>
                 <span class="chip">NoSQL</span>
                 <button class="btn" style="margin-top:8px" onclick="runCommand('service info database')">Details</button>
               </div>
               <div class="card">
-                <strong>MetGrid Cache</strong>
+                <strong>MetaGrid Cache</strong>
                 <p style="margin:8px 0;color:var(--muted)">In-memory caching service for high-performance apps.</p>
                 <span class="chip">Redis</span>
                 <span class="chip">Memcached</span>
                 <button class="btn" style="margin-top:8px" onclick="runCommand('service info cache')">Details</button>
               </div>
               <div class="card">
-                <strong>MetGrid Queue</strong>
+                <strong>MetaGrid Queue</strong>
                 <p style="margin:8px 0;color:var(--muted)">Message queue service for async processing.</p>
                 <span class="chip">RabbitMQ</span>
                 <span class="chip">Kafka</span>
@@ -283,12 +450,10 @@ metgrid deploy --file service.yaml
               </div>
             </div>
           </article>
-
           <article id="about" class="page">
             <div class="kicker">About</div>
-            <h1>About MetGrid Ecosystem</h1>
-            <p style="color:var(--muted)">MetGrid is a terminal-first suite for managing code-driven backend infrastructure.</p>
-            
+            <h1>About MetaGrid Ecosystem</h1>
+            <p style="color:var(--muted)">MetaGrid is a terminal-first suite for managing code-driven backend infrastructure.</p>
             <div class="cards">
               <div class="card">
                 <strong>Our Mission</strong>
@@ -299,10 +464,8 @@ metgrid deploy --file service.yaml
                 <p style="margin:8px 0;color:var(--muted)">Built on modern cloud-native technologies with a focus on developer experience.</p>
               </div>
             </div>
-            
             <h3 style="margin-top:24px">Team</h3>
-            <p style="color:var(--muted)">MetGrid is developed by a distributed team of infrastructure engineers and developers.</p>
-            
+            <p style="color:var(--muted)">MetaGrid is developed by a distributed team of infrastructure engineers and developers.</p>
             <div style="margin-top:20px">
               <button class="btn primary" onclick="runCommand('contact')">Contact Us</button>
               <button class="btn" onclick="runCommand('version')">Version Info</button>
@@ -310,64 +473,58 @@ metgrid deploy --file service.yaml
           </article>
         </div>
       </section>
-
-      <aside class="frost">
-        <div class="terminal-header">
-          <div class="terminal-title">Terminal</div>
-          <div class="terminal-user">metgrid@ecosystem</div>
-        </div>
-
-        <div class="terminal" id="terminal" tabindex="0" aria-label="Interactive terminal">
-          <div id="term-output">
-            <div class="line">Welcome to MetGrid Ecosystem v2.1.3</div>
-            <div class="line">Type 'help' for available commands</div>
-            <div class="line">─────────────────────────────────────</div>
+      <aside class="frost right-panel">
+        <div class="terminal-container">
+          <div class="terminal-window">
+            <div class="terminal-buttons">
+              <div class="terminal-btn red"></div>
+              <div class="terminal-btn yellow"></div>
+              <div class="terminal-btn green"></div>
+            </div>
+            <div class="terminal-title">Terminal</div>
+            <div class="terminal-user">metagrid.ecosystem</div>
           </div>
-          <div style="display:flex;align-items:center;margin-top:8px">
-            <div class="prompt">➜</div>
-            <input id="term-input" class="input" autocomplete="off" spellcheck="false" />
+          <!-- Fixed terminal structure -->
+          <div class="terminal-content terminal">
+            <div id="term-output" class="terminal-output">
+            </div>
+              <div class="terminal-input-line">
+                <div class="prompt">root@metagrid~:$</div>
+                <input id="term-input" class="input" autocomplete="off" spellcheck="false" />
+              </div>
           </div>
         </div>
-
-        <div style="margin-top:12px;color:var(--muted);font-size:13px">
-          <div>Tip: type <span style="color:var(--accent)">help</span> in the terminal.</div>
-          <div style="margin-top:4px">Shortcut: Press <span style="color:var(--accent)">`</span> to focus terminal</div>
-        </div>
-        
-        <div style="margin-top:16px; display: flex; gap: 8px;">
-          <button class="btn" onclick="runCommand('clear')" style="flex:1">Clear</button>
-          <button class="btn" onclick="runCommand('help')" style="flex:1">Help</button>
-          <button class="btn" onclick="runCommand('status')" style="flex:1">Status</button>
+        <div class="terminal-footer">
+            Tip: type <span style="font-weight: bold;">help</span> in the terminal.
+            Shortcut: Press <span style="font-weight: bold;">`</span> to focus terminal
         </div>
       </aside>
     </main>
-
     <footer>
-      <div class="logo">
+      <!-- <div class="logo">
         <div class="dot">MG</div>
         <div class="brand">metagrid</div>
-      </div>
-      <div>Built with ❤ — MetGrid Ecosystem v2.1.3</div>
+      </div> -->
       <div style="display:flex;gap:16px">
         <a href="#" style="color:var(--muted);text-decoration:none" onclick="runCommand('docs legal')">Legal</a>
         <a href="#" style="color:var(--muted);text-decoration:none" onclick="runCommand('contact')">Contact</a>
         <a href="#" style="color:var(--muted);text-decoration:none" onclick="runCommand('status')">Status</a>
       </div>
+      <div>Built with ❤ — MetaGrid Ecosystem &copy;</div>
     </footer>
   </div>
-
   <script>
     // --- simple matrix rain (lightweight) ---
     (function(){
       const canvas = document.getElementById('matrix-bg');
       const ctx = canvas.getContext('2d');
       let w,h,cols,drops,fontSize=14;
-      const letters = '01あいうえおABCDEFGHKLMNOPQRSTUVWXYZｱｲｳｴｵ';
+      const letters = '01あいうえおABCDEFGHKLMNOPQRSTUVWXYZｱｲｳｴｵ1234567890ﾊﾐﾑﾒﾓabcdefghijklmnopqrstuvwxyzｶｷｸｹｺ!@#$%^&*()-_=+[]{}|;:",.<>?/~';
       function resize(){ w=canvas.width=innerWidth; h=canvas.height=innerHeight; fontSize = Math.max(12, Math.floor(w/120)); cols=Math.floor(w/fontSize); drops=Array(cols).fill(0).map(()=>Math.random()*h); ctx.font=fontSize+'px monospace'; }
       window.addEventListener('resize', resize); resize();
-      function draw(){ ctx.fillStyle='rgba(0,0,0,0.08)'; ctx.fillRect(0,0,w,h); ctx.fillStyle='rgba(51,255,119,0.82)'; for(let i=0;i<cols;i++){ const text=letters.charAt(Math.floor(Math.random()*letters.length)); const x=i*fontSize; const y=drops[i]*fontSize; ctx.fillText(text,x,y); if(drops[i]*fontSize>h && Math.random()>0.975) drops[i]=0; drops[i]++; } requestAnimationFrame(draw);} draw();
+      function draw(){ ctx.fillStyle='rgba(0,0,0,0.08)'; ctx.fillRect(0,0,w,h); ctx.fillStyle='rgba(0,191,255,0.8)'; for(let i=0;i<cols;i++){ const text=letters.charAt(Math.floor(Math.random()*letters.length)); const x=i*fontSize; const y=drops[i]*fontSize; ctx.fillText(text,x,y); if(drops[i]*fontSize>h && Math.random()>0.975) drops[i]=0; drops[i]++; } requestAnimationFrame(draw);} draw();
     })();
-
+    
     // --- SPA routing (hash-based) ---
     const pages = Array.from(document.querySelectorAll('.page'));
     function showRoute(route){ 
@@ -380,10 +537,9 @@ metgrid deploy --file service.yaml
       const route=(location.hash||'#home').slice(1); 
       showRoute(route); 
     });
-    // initial
     const initial = (location.hash||'#home').slice(1); 
     showRoute(initial);
-
+    
     // Tab functionality
     document.querySelectorAll('.tab').forEach(tab => {
       tab.addEventListener('click', () => {
@@ -394,38 +550,44 @@ metgrid deploy --file service.yaml
         document.getElementById(tabId).classList.add('active');
       });
     });
-
+    
     // --- enhanced in-browser terminal with commands and navigation ---
     const output = document.getElementById('term-output');
     const input = document.getElementById('term-input');
     const history = []; 
     let hpos = 0;
-
+    
     function print(text, cls='line'){ 
       const d=document.createElement('div'); 
       d.className=cls; 
       d.textContent=text; 
       output.appendChild(d); 
-      output.parentElement.scrollTop = output.parentElement.scrollHeight; 
+      // output.parentElement.scrollTop = output.parentElement.scrollHeight; 
+      output.scrollTop = output.scrollHeight;
     }
-
-    const pagesList = pages.map(p=>p.id);
     
-    // Enhanced command list
+    function printHtml(html, cls='line') {
+      const d = document.createElement('div');
+      d.className = cls;
+      d.innerHTML = html;
+      output.appendChild(d);
+      // output.parentElement.scrollTop = output.parentElement.scrollHeight;
+      output.scrollTop = output.scrollHeight;
+    }
+    
+    const pagesList = pages.map(p=>p.id);
     const commands = {
       help(){ 
         print('Available commands:', 'line info');
-        print('  help, ls, goto <page>, open <page>, clear, about');
+        print('  help, ls, goto <page>, open <page>, clear, about, metafetch');
         print('  theme <dark|light>, status, deploy, logs, metrics');
         print('  service <info|list>, api <list|docs>, tutorial <list>');
         print('  examples, contact, version, docs <topic>');
       },
-      
       ls(){ 
         print('Available pages:', 'line info');
         print(pagesList.join(', ')); 
       },
-      
       goto(args){ 
         const route = args[0] || 'home'; 
         if(pagesList.includes(route)){ 
@@ -436,12 +598,10 @@ metgrid deploy --file service.yaml
           print('Available pages: ' + pagesList.join(', '), 'line info');
         }
       },
-      
       open(args){ 
         const route = args[0]; 
         if(route==='console' || route==='terminal'){ 
-          const term = document.getElementById('terminal'); 
-          term.focus(); 
+          input.focus(); 
           print('Console focused', 'line success'); 
         } else if (route === 'dashboard') {
           navigate('dashboard');
@@ -450,17 +610,14 @@ metgrid deploy --file service.yaml
           this.goto(args); 
         }
       },
-      
       clear(){ 
-        output.innerHTML=''; 
+        output.innerHTML = '';
         print('Terminal cleared', 'line info');
       },
-      
       about(){ 
-        print('MetGrid Ecosystem — terminal-first orchestration for backend engineers.', 'line info');
+        print('MetaGrid Ecosystem — terminal-first orchestration for backend engineers.', 'line info');
         print('Version 2.1.3 | Built with modern cloud-native technologies', 'line');
       },
-      
       theme(args){ 
         const t=args[0]; 
         if(t==='light'){ 
@@ -468,12 +625,29 @@ metgrid deploy --file service.yaml
           document.documentElement.style.setProperty('--muted','#555'); 
           print('Theme set to light', 'line success'); 
         } else { 
-          document.documentElement.style.setProperty('--bg','#050507'); 
+          document.documentElement.style.setProperty('--bg','#0d0d0d'); 
           document.documentElement.style.setProperty('--muted','#8b8b8b'); 
           print('Theme set to dark', 'line success'); 
         } 
       },
-      
+      metafetch(){
+    const info = `
+<span class="metafetch-label">root</span><span class="metafetch-info">@metagrid</span>
+<span class="metafetch-break">-------------</span>
+<span class="metafetch-label">OS</span><span class="metafetch-info">: MetaGrid</span>
+<span class="metafetch-label">Kernel</span><span class="metafetch-info">: 5.10.198-176.790.amzn2.x86_64</span>
+<span class="metafetch-label">Uptime</span><span class="metafetch-info">: 10d, 1h, 23m</span>
+<span class="metafetch-label">Packages</span><span class="metafetch-info">: 123 (apt), 4 (npm)</span>
+<span class="metafetch-label">Shell</span><span class="metafetch-info">: zsh</span>
+<span class="metafetch-label">Terminal</span><span class="metafetch-info">: MetaGrid-Console</span>
+<span class="metafetch-label">CPU</span><span class="metafetch-info">: Intel(R) Xeon(R) Gold 6248 CPU @ 2.50GHz (2 Cores)</span>
+<span class="metafetch-label">Memory</span><span class="metafetch-info">: 1024MiB / 2048MiB</span>
+`;
+    const infoLines = info.trim().split('\n');
+    for (let i = 0; i < infoLines.length; i++) {
+        printHtml(infoLines[i]);
+      }
+      },
       status() {
         print('System Status:', 'line info');
         print('  API Gateway: Online', 'line success');
@@ -483,7 +657,6 @@ metgrid deploy --file service.yaml
         print('  Monitoring: Offline', 'line error');
         print('  File Storage: Online', 'line success');
       },
-      
       deploy(args) {
         if (args[0] === 'status') {
           print('Deployment Status:', 'line info');
@@ -491,10 +664,9 @@ metgrid deploy --file service.yaml
           print('  Staging: Deploying (v2.1.4-rc1)', 'line');
           print('  Development: Testing (v2.2.0-dev)', 'line');
         } else {
-          print('Usage: deploy <status>', 'line info');
+          print('Usage: deploy <status>', 'line warning');
         }
       },
-      
       logs(args) {
         if (args[0] === 'tail') {
           print('Tailing recent logs...', 'line info');
@@ -502,10 +674,9 @@ metgrid deploy --file service.yaml
           print('  [DEBUG] Cache miss for key: user:1234', 'line');
           print('  [WARN] High memory usage detected in cache service', 'line error');
         } else {
-          print('Usage: logs <tail>', 'line info');
+          print('Usage: logs <tail>', 'line warning');
         }
       },
-      
       metrics() {
         print('System Metrics:', 'line info');
         print('  CPU Usage: 24%', 'line');
@@ -513,7 +684,6 @@ metgrid deploy --file service.yaml
         print('  Disk: 45GB / 100GB', 'line');
         print('  Network: 125MB/s in, 98MB/s out', 'line');
       },
-      
       service(args) {
         if (args[0] === 'list') {
           print('Available Services:', 'line info');
@@ -524,15 +694,14 @@ metgrid deploy --file service.yaml
             print(`Service Info: ${service}`, 'line info');
             print(`  Status: Online`, 'line success');
             print(`  Version: 2.1.3`, 'line');
-            print(`  Endpoint: https://${service}.metgrid.io`, 'line');
+            print(`  Endpoint: https://${service}.MetaGrid.io`, 'line');
           } else {
-            print('Usage: service info <name>', 'line error');
+            print('Usage: service info <name>', 'line warning');
           }
         } else {
-          print('Usage: service <list|info>', 'line info');
+          print('Usage: service <list|info>', 'line warning');
         }
       },
-      
       api(args) {
         if (args[0] === 'list') {
           print('API Endpoints:', 'line info');
@@ -541,51 +710,53 @@ metgrid deploy --file service.yaml
           print('  GET /v1/metrics', 'line');
           print('  POST /v1/webhook', 'line');
         } else if (args[0] === 'docs') {
-          print('API Documentation: https://docs.metgrid.io/api', 'line info');
+          print('API Documentation: https://metagrid-ecosystem.github.io/api/docs', 'line info');
         } else {
-          print('Usage: api <list|docs>', 'line info');
+          print('Usage: api <list|docs>', 'line warning');
         }
       },
-      
       tutorial(args) {
         if (args[0] === 'list') {
           print('Available Tutorials:', 'line info');
-          print('  Getting Started, Deployment Guide, API Integration', 'line');
-          print('  Monitoring Setup, Security Best Practices', 'line');
+          print('  Getting Started', 'line');
+          print('  Deployment Guide', 'line');
+          print('  API Integration', 'line');
+          print('  Monitoring Setup', 'line');
+          print('  Security Best Practices', 'line');
         } else {
-          print('Usage: tutorial <list>', 'line info');
+          print('Usage: tutorial <list>', 'line warning');
         }
       },
-      
       examples() {
         print('Example Configurations:', 'line info');
-        print('  Basic Web Service, Microservices, Database Setup', 'line');
-        print('  CI/CD Pipeline, Auto-scaling Configuration', 'line');
+        print('  Basic Web Service', 'line');
+        print('  Microservices', 'line');
+        print('  Database Setup', 'line');
+        print('  CI/CD Pipeline', 'line');
+        print('  Auto-scaling Configuration', 'line');
       },
-      
       contact() {
         print('Contact Information:', 'line info');
-        print('  Email: support@metgrid.io', 'line');
-        print('  Discord: https://discord.gg/metgrid', 'line');
-        print('  GitHub: https://github.com/metgrid', 'line');
+        print('  Email: support@MetaGrid.io', 'line');
+        print('  Discord: https://discord.gg/MetaGrid', 'line');
+        print('  GitHub: https://github.com/MetaGrid', 'line');
       },
-      
       version() {
-        print('MetGrid Ecosystem v2.1.3', 'line info');
+        print('MetaGrid Ecosystem v2.1.3', 'line info');
         print('Build: 2024.06.15-rc2', 'line');
         print('Platform: Cloud Native', 'line');
       },
-      
       docs(args) {
         const topic = args[0] || 'general';
         print(`Opening documentation for: ${topic}`, 'line info');
-        print('Documentation: https://docs.metgrid.io', 'line');
+        print('Documentation: https://docs.MetaGrid.io', 'line');
       }
     };
-
+    
     function runCommand(raw){ 
-      if(!raw.trim()) return; 
-      print('➜ ' + raw, 'line'); 
+      if(!raw.trim()) return;
+      print('', 'line'); 
+      print('root@metagrid~:$ ' + raw, 'line command'); 
       const parts = raw.split(/\s+/); 
       const cmd = parts[0].toLowerCase(); 
       const args = parts.slice(1); 
@@ -597,10 +768,10 @@ metgrid deploy --file service.yaml
         } 
       } else { 
         print('Unknown command: ' + cmd, 'line error'); 
-        print('Type "help" for available commands', 'line info');
+        print('Type "help" for available commands', 'line warning');
       } 
     }
-
+    
     input.addEventListener('keydown', (e)=>{
       if(e.key==='Enter'){ 
         runCommand(input.value); 
@@ -621,7 +792,6 @@ metgrid deploy --file service.yaml
       }
       else if(e.key === 'Tab') {
         e.preventDefault();
-        // Simple tab completion for commands
         const currentInput = input.value;
         const matchingCommands = Object.keys(commands).filter(c => c.startsWith(currentInput));
         if (matchingCommands.length === 1) {
@@ -631,16 +801,21 @@ metgrid deploy --file service.yaml
         }
       }
     });
-
-    // keyboard shortcut: focus terminal with ` (backtick) or Ctrl+~
+    
     window.addEventListener('keydown', (e)=>{ 
       if(e.key==='`' || (e.key==='~' && e.ctrlKey)){ 
-        document.getElementById('term-input').focus(); 
+        input.focus(); 
         e.preventDefault(); 
       } 
     });
     
-    // Make buttons work
+    // Initialize terminal with welcome message
+    setTimeout(() => {
+      print('MetaGrid Terminal v2.1.3', 'line info');
+      print('------------------------------', 'line');
+      print('', 'line');
+    }, 100);
+    
     window.runCommand = runCommand;
     window.navigate = navigate;
   </script>
