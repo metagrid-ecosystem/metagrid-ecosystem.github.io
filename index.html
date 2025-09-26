@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MetGrid Ecosystem — Terminal · Backend · Programming</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#050507; --panel: rgba(255,255,255,0.03); --muted:#8b8b8b; --accent:#33ff77; --glass:rgba(255,255,255,0.03);
+      --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:var(--bg);color:#e6e6e6;font-family:Inter,system-ui,Arial}
+
+    /* matrix canvas sits behind everything */
+    #matrix-bg{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+    .wrap{position:relative;z-index:10;min-height:100vh;display:flex;flex-direction:column}
+
+    /* Removed header styles - navbar is gone */
+
+    main{flex:1;padding:32px;display:grid;grid-template-columns:2fr 1fr;gap:28px}
+
+    /* frosted/translucent panels */
+    .frost{background:var(--panel);backdrop-filter:blur(8px) saturate(1.05);-webkit-backdrop-filter:blur(8px) saturate(1.05);border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:20px}
+    /* make internal content slightly obscured to let BG show through */
+    .obscure{background:linear-gradient(180deg,rgba(0,0,0,0.12),rgba(255,255,255,0.02));padding:12px;border-radius:8px}
+
+    .kicker{font-family:var(--mono);color:var(--accent);font-size:12px;letter-spacing:1.6px;text-transform:uppercase}
+    h1{font-family:var(--mono);font-weight:700;font-size:40px;margin:10px 0}
+    p.lead{color:var(--muted);line-height:1.6}
+
+    .btn{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:10px 14px;border-radius:8px;color:inherit;font-family:var(--mono);cursor:pointer;transition:all 0.2s}
+    .btn:hover{background:rgba(255,255,255,0.03)}
+    .btn.primary{background:linear-gradient(90deg,rgba(51,255,119,0.07),rgba(51,255,119,0.02));border-color:rgba(51,255,119,0.14)}
+    .btn.primary:hover{background:linear-gradient(90deg,rgba(51,255,119,0.12),rgba(51,255,119,0.05))}
+
+    .terminal{background:rgba(0,0,0,0.45);border-radius:8px;font-family:var(--mono);font-size:13px;color:var(--accent);line-height:1.45;overflow:auto;height:440px;padding:12px;border:1px solid rgba(255,255,255,0.03)}
+    .terminal .line{white-space:pre-wrap}
+    .terminal .line.error{color:#ff5555}
+    .terminal .line.success{color:var(--accent)}
+    .terminal .line.info{color:#55aaff}
+    .prompt{color:var(--muted);margin-right:8px}
+    .input{outline:none;border:none;background:transparent;color:var(--accent);font-family:var(--mono);flex:1}
+
+    .pages{min-height:420px}
+    .page{display:none;animation:fadeIn 0.3s ease-in-out}
+    .page.active{display:block}
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px}
+    .card{padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);transition:all 0.2s}
+    .card:hover{background:rgba(255,255,255,0.04);transform:translateY(-2px)}
+    .chip{display:inline-block;padding:6px 8px;border-radius:6px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);font-size:12px}
+    
+    /* New styles for additional content */
+    .service-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:20px 0}
+    .service{background:rgba(255,255,255,0.02);border-radius:10px;padding:16px;border:1px solid rgba(255,255,255,0.03)}
+    .service h3{margin-top:0;color:var(--accent)}
+    
+    .status-indicator{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px}
+    .status-online{background-color:var(--accent)}
+    .status-offline{background-color:#ff5555}
+    .status-warning{background-color:#ffaa00}
+    
+    .terminal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+    .terminal-title{font-family:var(--mono);font-weight:700}
+    .terminal-user{font-size:12px;color:var(--muted)}
+    
+    footer{padding:18px 28px;border-top:1px solid rgba(255,255,255,0.02);color:var(--muted);font-size:13px;display:flex;justify-content:space-between;align-items:center}
+    
+    .logo{display:flex;align-items:center;gap:8px}
+    .logo .dot{width:24px;height:24px;border-radius:6px;background:linear-gradient(180deg,var(--accent),#17b85a);display:grid;place-items:center;font-family:var(--mono);font-weight:700;color:#001;font-size:10px}
+    .brand{font-family:var(--mono);font-weight:700;font-size:14px}
+    
+    .code-block{background:rgba(0,0,0,0.3);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12px;margin:16px 0;overflow-x:auto}
+    
+    .tab-container{margin:20px 0}
+    .tabs{display:flex;border-bottom:1px solid rgba(255,255,255,0.05);margin-bottom:16px}
+    .tab{padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s}
+    .tab.active{border-bottom-color:var(--accent);color:var(--accent)}
+    .tab-content{display:none}
+    .tab-content.active{display:block}
+
+    @media (max-width:1100px){main{grid-template-columns:1fr;padding:18px}.terminal{height:300px}.service-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <canvas id="matrix-bg"></canvas>
+  <div class="wrap">
+    <main>
+      <section class="frost obscure">
+        <div id="pages" class="pages">
+          <article id="home" class="page active">
+            <div class="kicker">Orchestration • Observability • Dev</div>
+            <h1>MetGrid Ecosystem</h1>
+            <p class="lead">A terminal-first UI for modern backend workflows. Panels and cards are translucent so the matrix rain shows through; content is intentionally obscured to keep focus on actions and commands.</p>
+            <div style="margin-top:16px">
+              <button class="btn primary" onclick="navigate('dashboard')">Open Dashboard</button>
+              <button class="btn" onclick="navigate('docs')">View Docs</button>
+              <button class="btn" onclick="navigate('services')">Services</button>
+            </div>
+
+            <div class="cards">
+              <div class="card">
+                <strong>Remote Shells</strong>
+                <p style="margin:8px 0;color:var(--muted)">Attach and run processes across fleet nodes.</p>
+                <span class="chip">SSH</span>
+                <span class="chip">WebSocket</span>
+              </div>
+              <div class="card">
+                <strong>Pipelines as Code</strong>
+                <p style="margin:8px 0;color:var(--muted)">Define, test and deploy repeatable backend flows.</p>
+                <span class="chip">YAML</span>
+                <span class="chip">GitOps</span>
+              </div>
+              <div class="card">
+                <strong>Observability</strong>
+                <p style="margin:8px 0;color:var(--muted)">Traces, logs, and metrics in a single timeline.</p>
+                <span class="chip">OpenTelemetry</span>
+                <span class="chip">Grafana</span>
+              </div>
+              <div class="card">
+                <strong>Identity</strong>
+                <p style="margin:8px 0;color:var(--muted)">SAML / OAuth integrations for teams.</p>
+                <span class="chip">OAuth2</span>
+                <span class="chip">SAML</span>
+              </div>
+            </div>
+            
+            <div class="tab-container">
+              <div class="tabs">
+                <div class="tab active" data-tab="quickstart">Quick Start</div>
+                <div class="tab" data-tab="features">Features</div>
+                <div class="tab" data-tab="integrations">Integrations</div>
+              </div>
+              
+              <div class="tab-content active" id="quickstart">
+                <p>Get started with MetGrid in minutes:</p>
+                <div class="code-block">
+# Install MetGrid CLI<br>
+curl -fsSL https://get.metgrid.io | sh<br><br>
+# Authenticate with your account<br>
+metgrid auth login<br><br>
+# Deploy your first service<br>
+metgrid deploy --file service.yaml
+                </div>
+              </div>
+              
+              <div class="tab-content" id="features">
+                <ul>
+                  <li>Real-time cluster monitoring</li>
+                  <li>Automated scaling policies</li>
+                  <li>Integrated security scanning</li>
+                  <li>Multi-cloud deployment</li>
+                </ul>
+              </div>
+              
+              <div class="tab-content" id="integrations">
+                <p>MetGrid integrates with your existing tools:</p>
+                <span class="chip">Kubernetes</span>
+                <span class="chip">Docker</span>
+                <span class="chip">GitHub</span>
+                <span class="chip">GitLab</span>
+                <span class="chip">AWS</span>
+                <span class="chip">Azure</span>
+              </div>
+            </div>
+          </article>
+
+          <article id="docs" class="page">
+            <div class="kicker">Documentation</div>
+            <h1>Developer Documentation</h1>
+            <p style="color:var(--muted)">Browse quickstart guides and API references. Try the terminal command <code>ls</code> or <code>goto home</code> to navigate.</p>
+            
+            <div class="cards">
+              <div class="card">
+                <strong>API Reference</strong>
+                <p style="margin:8px 0;color:var(--muted)">Complete REST API documentation with examples.</p>
+                <button class="btn" style="margin-top:8px" onclick="runCommand('api list')">View in Terminal</button>
+              </div>
+              <div class="card">
+                <strong>CLI Guide</strong>
+                <p style="margin:8px 0;color:var(--muted)">Command-line interface usage and examples.</p>
+                <button class="btn" style="margin-top:8px" onclick="runCommand('help cli')">View Commands</button>
+              </div>
+              <div class="card">
+                <strong>Tutorials</strong>
+                <p style="margin:8px 0;color:var(--muted)">Step-by-step guides for common workflows.</p>
+                <button class="btn" style="margin-top:8px" onclick="runCommand('tutorial list')">Browse Tutorials</button>
+              </div>
+              <div class="card">
+                <strong>Examples</strong>
+                <p style="margin:8px 0;color:var(--muted)">Real-world configuration examples.</p>
+                <button class="btn" style="margin-top:8px" onclick="runCommand('examples')">View Examples</button>
+              </div>
+            </div>
+          </article>
+
+          <article id="dashboard" class="page">
+            <div class="kicker">Live Dashboard</div>
+            <h1>System Dashboard</h1>
+            <p style="color:var(--muted)">View services, deployments, and live consoles. Use <code>open console</code> in the terminal to pop the console in focus.</p>
+            
+            <div class="service-grid">
+              <div class="service">
+                <h3><span class="status-indicator status-online"></span>API Gateway</h3>
+                <p>Handles all incoming requests</p>
+                <div style="font-size:12px;color:var(--muted)">CPU: 24% | Memory: 512MB</div>
+              </div>
+              <div class="service">
+                <h3><span class="status-indicator status-online"></span>Database</h3>
+                <p>Primary data storage</p>
+                <div style="font-size:12px;color:var(--muted)">CPU: 18% | Memory: 1.2GB</div>
+              </div>
+              <div class="service">
+                <h3><span class="status-indicator status-warning"></span>Cache Layer</h3>
+                <p>Redis instance for sessions</p>
+                <div style="font-size:12px;color:var(--muted)">CPU: 65% | Memory: 256MB</div>
+              </div>
+              <div class="service">
+                <h3><span class="status-indicator status-online"></span>Auth Service</h3>
+                <p>Handles user authentication</p>
+                <div style="font-size:12px;color:var(--muted)">CPU: 12% | Memory: 384MB</div>
+              </div>
+              <div class="service">
+                <h3><span class="status-indicator status-offline"></span>Monitoring</h3>
+                <p>Metrics and alerting</p>
+                <div style="font-size:12px;color:var(--muted)">CPU: 0% | Memory: 0MB</div>
+              </div>
+              <div class="service">
+                <h3><span class="status-indicator status-online"></span>File Storage</h3>
+                <p>Object storage service</p>
+                <div style="font-size:12px;color:var(--muted)">CPU: 8% | Memory: 640MB</div>
+              </div>
+            </div>
+            
+            <div style="margin-top:20px">
+              <button class="btn primary" onclick="runCommand('deploy status')">Check Deployments</button>
+              <button class="btn" onclick="runCommand('logs tail')">View Logs</button>
+              <button class="btn" onclick="runCommand('metrics')">Show Metrics</button>
+            </div>
+          </article>
+          
+          <article id="services" class="page">
+            <div class="kicker">Service Catalog</div>
+            <h1>Available Services</h1>
+            <p style="color:var(--muted)">Browse and manage all available services in the MetGrid ecosystem.</p>
+            
+            <div class="cards">
+              <div class="card">
+                <strong>MetGrid Compute</strong>
+                <p style="margin:8px 0;color:var(--muted)">Container-based compute service with auto-scaling.</p>
+                <span class="chip">Containers</span>
+                <span class="chip">Auto-scale</span>
+                <button class="btn" style="margin-top:8px" onclick="runCommand('service info compute')">Details</button>
+              </div>
+              <div class="card">
+                <strong>MetGrid DB</strong>
+                <p style="margin:8px 0;color:var(--muted)">Managed database service with automated backups.</p>
+                <span class="chip">SQL</span>
+                <span class="chip">NoSQL</span>
+                <button class="btn" style="margin-top:8px" onclick="runCommand('service info database')">Details</button>
+              </div>
+              <div class="card">
+                <strong>MetGrid Cache</strong>
+                <p style="margin:8px 0;color:var(--muted)">In-memory caching service for high-performance apps.</p>
+                <span class="chip">Redis</span>
+                <span class="chip">Memcached</span>
+                <button class="btn" style="margin-top:8px" onclick="runCommand('service info cache')">Details</button>
+              </div>
+              <div class="card">
+                <strong>MetGrid Queue</strong>
+                <p style="margin:8px 0;color:var(--muted)">Message queue service for async processing.</p>
+                <span class="chip">RabbitMQ</span>
+                <span class="chip">Kafka</span>
+                <button class="btn" style="margin-top:8px" onclick="runCommand('service info queue')">Details</button>
+              </div>
+            </div>
+          </article>
+
+          <article id="about" class="page">
+            <div class="kicker">About</div>
+            <h1>About MetGrid Ecosystem</h1>
+            <p style="color:var(--muted)">MetGrid is a terminal-first suite for managing code-driven backend infrastructure.</p>
+            
+            <div class="cards">
+              <div class="card">
+                <strong>Our Mission</strong>
+                <p style="margin:8px 0;color:var(--muted)">To simplify backend infrastructure management through intuitive terminal interfaces and automation.</p>
+              </div>
+              <div class="card">
+                <strong>Technology</strong>
+                <p style="margin:8px 0;color:var(--muted)">Built on modern cloud-native technologies with a focus on developer experience.</p>
+              </div>
+            </div>
+            
+            <h3 style="margin-top:24px">Team</h3>
+            <p style="color:var(--muted)">MetGrid is developed by a distributed team of infrastructure engineers and developers.</p>
+            
+            <div style="margin-top:20px">
+              <button class="btn primary" onclick="runCommand('contact')">Contact Us</button>
+              <button class="btn" onclick="runCommand('version')">Version Info</button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <aside class="frost">
+        <div class="terminal-header">
+          <div class="terminal-title">Terminal</div>
+          <div class="terminal-user">metgrid@ecosystem</div>
+        </div>
+
+        <div class="terminal" id="terminal" tabindex="0" aria-label="Interactive terminal">
+          <div id="term-output">
+            <div class="line">Welcome to MetGrid Ecosystem v2.1.3</div>
+            <div class="line">Type 'help' for available commands</div>
+            <div class="line">─────────────────────────────────────</div>
+          </div>
+          <div style="display:flex;align-items:center;margin-top:8px">
+            <div class="prompt">➜</div>
+            <input id="term-input" class="input" autocomplete="off" spellcheck="false" />
+          </div>
+        </div>
+
+        <div style="margin-top:12px;color:var(--muted);font-size:13px">
+          <div>Tip: type <span style="color:var(--accent)">help</span> in the terminal.</div>
+          <div style="margin-top:4px">Shortcut: Press <span style="color:var(--accent)">`</span> to focus terminal</div>
+        </div>
+        
+        <div style="margin-top:16px; display: flex; gap: 8px;">
+          <button class="btn" onclick="runCommand('clear')" style="flex:1">Clear</button>
+          <button class="btn" onclick="runCommand('help')" style="flex:1">Help</button>
+          <button class="btn" onclick="runCommand('status')" style="flex:1">Status</button>
+        </div>
+      </aside>
+    </main>
+
+    <footer>
+      <div class="logo">
+        <div class="dot">MG</div>
+        <div class="brand">metagrid</div>
+      </div>
+      <div>Built with ❤ — MetGrid Ecosystem v2.1.3</div>
+      <div style="display:flex;gap:16px">
+        <a href="#" style="color:var(--muted);text-decoration:none" onclick="runCommand('docs legal')">Legal</a>
+        <a href="#" style="color:var(--muted);text-decoration:none" onclick="runCommand('contact')">Contact</a>
+        <a href="#" style="color:var(--muted);text-decoration:none" onclick="runCommand('status')">Status</a>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // --- simple matrix rain (lightweight) ---
+    (function(){
+      const canvas = document.getElementById('matrix-bg');
+      const ctx = canvas.getContext('2d');
+      let w,h,cols,drops,fontSize=14;
+      const letters = '01あいうえおABCDEFGHKLMNOPQRSTUVWXYZｱｲｳｴｵ';
+      function resize(){ w=canvas.width=innerWidth; h=canvas.height=innerHeight; fontSize = Math.max(12, Math.floor(w/120)); cols=Math.floor(w/fontSize); drops=Array(cols).fill(0).map(()=>Math.random()*h); ctx.font=fontSize+'px monospace'; }
+      window.addEventListener('resize', resize); resize();
+      function draw(){ ctx.fillStyle='rgba(0,0,0,0.08)'; ctx.fillRect(0,0,w,h); ctx.fillStyle='rgba(51,255,119,0.82)'; for(let i=0;i<cols;i++){ const text=letters.charAt(Math.floor(Math.random()*letters.length)); const x=i*fontSize; const y=drops[i]*fontSize; ctx.fillText(text,x,y); if(drops[i]*fontSize>h && Math.random()>0.975) drops[i]=0; drops[i]++; } requestAnimationFrame(draw);} draw();
+    })();
+
+    // --- SPA routing (hash-based) ---
+    const pages = Array.from(document.querySelectorAll('.page'));
+    function showRoute(route){ 
+      pages.forEach(p=>p.classList.toggle('active', p.id===route)); 
+    }
+    function navigate(route){ 
+      location.hash = '#'+route; 
+    }
+    window.addEventListener('hashchange', ()=>{ 
+      const route=(location.hash||'#home').slice(1); 
+      showRoute(route); 
+    });
+    // initial
+    const initial = (location.hash||'#home').slice(1); 
+    showRoute(initial);
+
+    // Tab functionality
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabId = tab.getAttribute('data-tab');
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+      });
+    });
+
+    // --- enhanced in-browser terminal with commands and navigation ---
+    const output = document.getElementById('term-output');
+    const input = document.getElementById('term-input');
+    const history = []; 
+    let hpos = 0;
+
+    function print(text, cls='line'){ 
+      const d=document.createElement('div'); 
+      d.className=cls; 
+      d.textContent=text; 
+      output.appendChild(d); 
+      output.parentElement.scrollTop = output.parentElement.scrollHeight; 
+    }
+
+    const pagesList = pages.map(p=>p.id);
+    
+    // Enhanced command list
+    const commands = {
+      help(){ 
+        print('Available commands:', 'line info');
+        print('  help, ls, goto <page>, open <page>, clear, about');
+        print('  theme <dark|light>, status, deploy, logs, metrics');
+        print('  service <info|list>, api <list|docs>, tutorial <list>');
+        print('  examples, contact, version, docs <topic>');
+      },
+      
+      ls(){ 
+        print('Available pages:', 'line info');
+        print(pagesList.join(', ')); 
+      },
+      
+      goto(args){ 
+        const route = args[0] || 'home'; 
+        if(pagesList.includes(route)){ 
+          navigate(route); 
+          print('Navigated to ' + route, 'line success'); 
+        } else {
+          print('No such page: ' + route, 'line error'); 
+          print('Available pages: ' + pagesList.join(', '), 'line info');
+        }
+      },
+      
+      open(args){ 
+        const route = args[0]; 
+        if(route==='console' || route==='terminal'){ 
+          const term = document.getElementById('terminal'); 
+          term.focus(); 
+          print('Console focused', 'line success'); 
+        } else if (route === 'dashboard') {
+          navigate('dashboard');
+          print('Opening dashboard...', 'line success');
+        } else {
+          this.goto(args); 
+        }
+      },
+      
+      clear(){ 
+        output.innerHTML=''; 
+        print('Terminal cleared', 'line info');
+      },
+      
+      about(){ 
+        print('MetGrid Ecosystem — terminal-first orchestration for backend engineers.', 'line info');
+        print('Version 2.1.3 | Built with modern cloud-native technologies', 'line');
+      },
+      
+      theme(args){ 
+        const t=args[0]; 
+        if(t==='light'){ 
+          document.documentElement.style.setProperty('--bg','#f6f6f7'); 
+          document.documentElement.style.setProperty('--muted','#555'); 
+          print('Theme set to light', 'line success'); 
+        } else { 
+          document.documentElement.style.setProperty('--bg','#050507'); 
+          document.documentElement.style.setProperty('--muted','#8b8b8b'); 
+          print('Theme set to dark', 'line success'); 
+        } 
+      },
+      
+      status() {
+        print('System Status:', 'line info');
+        print('  API Gateway: Online', 'line success');
+        print('  Database: Online', 'line success');
+        print('  Cache Layer: Warning (High CPU)', 'line error');
+        print('  Auth Service: Online', 'line success');
+        print('  Monitoring: Offline', 'line error');
+        print('  File Storage: Online', 'line success');
+      },
+      
+      deploy(args) {
+        if (args[0] === 'status') {
+          print('Deployment Status:', 'line info');
+          print('  Production: Stable (v2.1.3)', 'line success');
+          print('  Staging: Deploying (v2.1.4-rc1)', 'line');
+          print('  Development: Testing (v2.2.0-dev)', 'line');
+        } else {
+          print('Usage: deploy <status>', 'line info');
+        }
+      },
+      
+      logs(args) {
+        if (args[0] === 'tail') {
+          print('Tailing recent logs...', 'line info');
+          print('  [INFO] API request processed: 200 OK', 'line');
+          print('  [DEBUG] Cache miss for key: user:1234', 'line');
+          print('  [WARN] High memory usage detected in cache service', 'line error');
+        } else {
+          print('Usage: logs <tail>', 'line info');
+        }
+      },
+      
+      metrics() {
+        print('System Metrics:', 'line info');
+        print('  CPU Usage: 24%', 'line');
+        print('  Memory: 3.2GB / 8GB', 'line');
+        print('  Disk: 45GB / 100GB', 'line');
+        print('  Network: 125MB/s in, 98MB/s out', 'line');
+      },
+      
+      service(args) {
+        if (args[0] === 'list') {
+          print('Available Services:', 'line info');
+          print('  compute, database, cache, queue, storage, monitoring', 'line');
+        } else if (args[0] === 'info') {
+          const service = args[1];
+          if (service) {
+            print(`Service Info: ${service}`, 'line info');
+            print(`  Status: Online`, 'line success');
+            print(`  Version: 2.1.3`, 'line');
+            print(`  Endpoint: https://${service}.metgrid.io`, 'line');
+          } else {
+            print('Usage: service info <name>', 'line error');
+          }
+        } else {
+          print('Usage: service <list|info>', 'line info');
+        }
+      },
+      
+      api(args) {
+        if (args[0] === 'list') {
+          print('API Endpoints:', 'line info');
+          print('  GET /v1/services', 'line');
+          print('  POST /v1/deploy', 'line');
+          print('  GET /v1/metrics', 'line');
+          print('  POST /v1/webhook', 'line');
+        } else if (args[0] === 'docs') {
+          print('API Documentation: https://docs.metgrid.io/api', 'line info');
+        } else {
+          print('Usage: api <list|docs>', 'line info');
+        }
+      },
+      
+      tutorial(args) {
+        if (args[0] === 'list') {
+          print('Available Tutorials:', 'line info');
+          print('  Getting Started, Deployment Guide, API Integration', 'line');
+          print('  Monitoring Setup, Security Best Practices', 'line');
+        } else {
+          print('Usage: tutorial <list>', 'line info');
+        }
+      },
+      
+      examples() {
+        print('Example Configurations:', 'line info');
+        print('  Basic Web Service, Microservices, Database Setup', 'line');
+        print('  CI/CD Pipeline, Auto-scaling Configuration', 'line');
+      },
+      
+      contact() {
+        print('Contact Information:', 'line info');
+        print('  Email: support@metgrid.io', 'line');
+        print('  Discord: https://discord.gg/metgrid', 'line');
+        print('  GitHub: https://github.com/metgrid', 'line');
+      },
+      
+      version() {
+        print('MetGrid Ecosystem v2.1.3', 'line info');
+        print('Build: 2024.06.15-rc2', 'line');
+        print('Platform: Cloud Native', 'line');
+      },
+      
+      docs(args) {
+        const topic = args[0] || 'general';
+        print(`Opening documentation for: ${topic}`, 'line info');
+        print('Documentation: https://docs.metgrid.io', 'line');
+      }
+    };
+
+    function runCommand(raw){ 
+      if(!raw.trim()) return; 
+      print('➜ ' + raw, 'line'); 
+      const parts = raw.split(/\s+/); 
+      const cmd = parts[0].toLowerCase(); 
+      const args = parts.slice(1); 
+      if(commands[cmd]){ 
+        try{ 
+          commands[cmd](args); 
+        } catch(e){ 
+          print('Error: ' + e.message, 'line error'); 
+        } 
+      } else { 
+        print('Unknown command: ' + cmd, 'line error'); 
+        print('Type "help" for available commands', 'line info');
+      } 
+    }
+
+    input.addEventListener('keydown', (e)=>{
+      if(e.key==='Enter'){ 
+        runCommand(input.value); 
+        history.push(input.value); 
+        hpos = history.length; 
+        input.value=''; 
+        e.preventDefault(); 
+      }
+      else if(e.key==='ArrowUp'){ 
+        if(hpos>0) hpos--; 
+        input.value = history[hpos] || ''; 
+        e.preventDefault(); 
+      }
+      else if(e.key==='ArrowDown'){ 
+        if(hpos < history.length-1) hpos++; 
+        input.value = history[hpos] || ''; 
+        e.preventDefault(); 
+      }
+      else if(e.key === 'Tab') {
+        e.preventDefault();
+        // Simple tab completion for commands
+        const currentInput = input.value;
+        const matchingCommands = Object.keys(commands).filter(c => c.startsWith(currentInput));
+        if (matchingCommands.length === 1) {
+          input.value = matchingCommands[0] + ' ';
+        } else if (matchingCommands.length > 1) {
+          print('Possible completions: ' + matchingCommands.join(', '), 'line info');
+        }
+      }
+    });
+
+    // keyboard shortcut: focus terminal with ` (backtick) or Ctrl+~
+    window.addEventListener('keydown', (e)=>{ 
+      if(e.key==='`' || (e.key==='~' && e.ctrlKey)){ 
+        document.getElementById('term-input').focus(); 
+        e.preventDefault(); 
+      } 
+    });
+    
+    // Make buttons work
+    window.runCommand = runCommand;
+    window.navigate = navigate;
+  </script>
+</body>
+</html>
